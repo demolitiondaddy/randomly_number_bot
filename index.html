@@ -49,26 +49,7 @@
     button:active { transform: scale(.985); }
     /* Center of this overlay matches the center of the final video frame. */
     #resultScreen { pointer-events: none; }
-    /* Neon ring around the generated number; shown only after the video ends. */
-    #resultRing {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: min(62vw, 270px);
-      aspect-ratio: 1 / 1;
-      border-radius: 50%;
-      border: 3px solid #3cff81;
-      transform: translate(-50%, -50%);
-      background: radial-gradient(circle, rgba(3, 16, 7, .56) 0%, rgba(2, 9, 4, .3) 65%, rgba(2, 9, 4, .05) 100%);
-      box-shadow: 0 0 15px rgba(60, 255, 129, .6),
-                  0 0 34px rgba(60, 255, 129, .24),
-                  inset 0 0 20px rgba(60, 255, 129, .15);
-      animation: ringIn .55s ease-out both;
-    }
-    @keyframes ringIn {
-      from { opacity: 0; transform: translate(-50%, -50%) scale(.82); }
-      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-    #resultNumber { position: absolute; z-index: 1; left: 50%; top: 50%; width: min(63vw, 300px);
+    #resultNumber { position: absolute; left: 50%; top: 50%; width: min(63vw, 300px);
       transform: translate(-50%, calc(-50% - 90px)) scale(.75);
       color: #eefff2; text-align: center; font-size: clamp(15px, 4.5vw, 26px);
       font-weight: 850; font-variant-numeric: tabular-nums;
@@ -116,7 +97,6 @@
   </main>
 
   <section id="resultScreen" class="screen hidden" aria-label="Random number result">
-    <div id="resultRing" class="hidden" aria-hidden="true"></div>
     <div id="resultNumber" aria-live="polite"></div>
     <button id="continueButton" class="hidden" type="button">Continue</button>
   </section>
@@ -135,7 +115,6 @@
     const video = document.getElementById('backgroundVideo');
     const inputScreen = document.getElementById('inputScreen');
     const resultScreen = document.getElementById('resultScreen');
-    const resultRing = document.getElementById('resultRing');
     const resultNumber = document.getElementById('resultNumber');
     const minInput = document.getElementById('minInput');
     const maxInput = document.getElementById('maxInput');
@@ -187,7 +166,6 @@
       revealed = true;
       clearTimeout(timer);
       video.pause(); // Keep the final video frame on screen.
-      resultRing.classList.remove('hidden');
       resultNumber.textContent = number.toString();
       resultNumber.classList.remove('drop');
       void resultNumber.offsetWidth;
@@ -210,7 +188,6 @@
       }
       const number = secureInteger(range.min, range.max);
       revealed = false;
-      resultRing.classList.add('hidden');
       resultNumber.textContent = '';
       resultNumber.classList.remove('drop');
       continueButton.classList.add('hidden');
@@ -233,7 +210,6 @@
       video.pause();
       video.currentTime = 0;
       resultScreen.classList.add('hidden');
-      resultRing.classList.add('hidden');
       inputScreen.classList.remove('hidden');
       resultNumber.classList.remove('drop');
       continueButton.classList.add('hidden');
