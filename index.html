@@ -7,6 +7,18 @@
   <title>Random number simulations (generator)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    .outer-ring {
+  position: absolute;
+  width: calc(var(--circle-size) + 34px);
+  height: calc(var(--circle-size) + 34px);
+  border-radius: 999px;
+  border: 3px solid rgba(52, 255, 126, 0.75);
+  box-shadow:
+    0 0 12px rgba(52, 255, 126, 0.35),
+    0 0 28px rgba(52, 255, 126, 0.22),
+    inset 0 0 12px rgba(52, 255, 126, 0.12);
+  z-index: 0;
+}
     :root {
       color-scheme: dark;
       --green: #3cff81;
