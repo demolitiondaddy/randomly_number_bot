@@ -1,468 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Green RNG</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#020602">
+  <title>Random number simulations (generator)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --bg: #020402;
-      --panel: rgba(3, 12, 3, 0.72);
-      --panel-strong: rgba(2, 8, 2, 0.86);
-      --text: #dfffe0;
-      --muted: #8fd78f;
-      --accent: #34ff7e;
-      --accent-soft: rgba(52,255,126,0.14);
-      --accent-border: rgba(52,255,126,0.35);
-      --danger: #ff7c7c;
-      --shadow: 0 0 28px rgba(52,255,126,0.18);
-      --circle-size: min(56vw, 260px);
+      color-scheme: dark;
+      --green: #3cff81;
+      --text: #e9fff0;
+      --muted: #9aceab;
     }
     * { box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%; margin: 0;
-      background: var(--bg); color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      overflow: hidden;
-    }
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.42) 64%, rgba(0,0,0,0.82) 100%);
-      pointer-events: none;
-      z-index: 1;
-    }
-    #bgVideo {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #000;
-      z-index: 0;
-      filter: brightness(0.72) saturate(1.05);
-    }
-    .app {
-      position: relative;
-      z-index: 2;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-    }
-    .layout {
-      width: min(560px, 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    .panel {
-      width: 100%;
-      background: var(--panel);
-      border: 1px solid var(--accent-border);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-    }
-    .top-card {
-      padding: 18px;
-    }
-    h1 {
-      margin: 0 0 6px;
-      font-size: 28px;
-      letter-spacing: 0.04em;
-      color: var(--accent);
-      text-align: center;
-    }
-    .subtitle {
-      margin: 0 0 14px;
-      font-size: 14px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.45;
-    }
-    .range-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .field label {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    .field input {
-      width: 100%;
-      border-radius: 14px;
-      border: 1px solid rgba(52,255,126,0.2);
-      background: rgba(0,0,0,0.54);
-      color: var(--text);
-      padding: 14px 14px;
-      font-size: 16px;
-      outline: none;
-    }
-    .field input:focus {
-      border-color: rgba(52,255,126,0.6);
-      box-shadow: 0 0 0 3px rgba(52,255,126,0.10);
-    }
-    .limits {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.4;
-    }
-    .btn {
-      width: 100%;
-      border: none;
-      border-radius: 16px;
-      padding: 15px 16px;
-      background: linear-gradient(180deg, #3dff8a 0%, #17b656 100%);
-      color: #031105;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      transition: transform .16s ease, filter .16s ease, opacity .16s ease;
-    }
-    .btn:hover { filter: brightness(1.05); }
-    .btn:active { transform: scale(0.98); }
-    .btn.secondary {
-      background: rgba(52,255,126,0.10);
-      color: var(--text);
-      border: 1px solid rgba(52,255,126,0.3);
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.16);
-    }
-    .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
-    .error {
-      min-height: 18px;
-      color: var(--danger);
-      font-size: 13px;
-      text-align: center;
-    }
-    .result-stage {
-      width: 100%;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 18px;
-    }
-    .result-stage.active { display: flex; }
-    .circle-wrap {
-      position: relative;
-      width: var(--circle-size);
-      height: var(--circle-size);
-      display: grid;
-      place-items: center;
-      margin-top: 8px;
-    }
-    .circle-glow {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
-      border: 1px solid rgba(52,255,126,0.32);
-      background: radial-gradient(circle at center, rgba(52,255,126,0.10) 0%, rgba(3,12,3,0.18) 55%, rgba(3,12,3,0.05) 100%);
-      box-shadow: 0 0 40px rgba(52,255,126,0.10), inset 0 0 28px rgba(52,255,126,0.08);
-    }
-    .status {
-      position: absolute;
-      top: -14px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: #b4ffcb;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(52,255,126,0.2);
-      border-radius: 999px;
-      padding: 6px 10px;
-      white-space: nowrap;
-    }
-    .result-number {
-      position: relative;
-      z-index: 2;
-      max-width: calc(var(--circle-size) - 36px);
-      text-align: center;
-      font-weight: 900;
-      letter-spacing: 0.01em;
-      color: #e8ffee;
-      text-shadow: 0 0 20px rgba(52,255,126,0.28);
-      font-variant-numeric: tabular-nums;
-      line-height: 1.08;
-      opacity: 0;
-      transform: translateY(-90px) scale(0.65);
-      font-size: clamp(26px, 6.5vw, 44px);
-      word-break: break-word;
-    }
-    .result-number.drop {
-      animation: dropIn 880ms cubic-bezier(.18, .9, .22, 1.15) forwards;
-    }
-    @keyframes dropIn {
-      0% { opacity: 0; transform: translateY(-90px) scale(0.65); }
-      62% { opacity: 1; transform: translateY(12px) scale(1.06); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .result-meta {
-      width: 100%;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-      padding: 0 10px;
-    }
-    .bottom-actions {
-      width: min(420px, 100%);
-      display: grid;
-      gap: 10px;
-    }
-    .bottom-actions.hidden { display: none; }
-    .micro {
-      font-size: 11px;
-      color: #9fd8a4;
-      text-align: center;
-      line-height: 1.45;
-      opacity: .92;
-      padding: 0 8px;
-    }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body { overflow: hidden; background: #020602; color: var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    #backgroundVideo { position: fixed; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: center; background: #000; z-index: 0; }
+    body::before { content: ""; position: fixed; inset: 0; z-index: 1;
+      pointer-events: none; background: rgba(0, 0, 0, .18); }
+    .screen { position: fixed; inset: 0; z-index: 2; display: flex;
+      align-items: center; justify-content: center; padding: 18px; }
     .hidden { display: none !important; }
-    @media (max-width: 560px) {
-      .range-grid { grid-template-columns: 1fr; }
-      .top-card { padding: 16px; }
-      h1 { font-size: 24px; }
-      .subtitle { font-size: 13px; }
+    .panel { width: min(440px, 100%); padding: 26px 22px;
+      border: 1px solid rgba(60, 255, 129, .30); border-radius: 22px;
+      background: rgba(1, 11, 5, .90); box-shadow: 0 0 32px rgba(32, 170, 84, .14); }
+    h1 { margin: 0 0 12px; color: var(--green); font-size: clamp(22px, 5vw, 27px);
+      font-weight: 750; line-height: 1.2; text-align: center; }
+    .description { margin: 0 0 24px; color: var(--muted);
+      font-size: 14px; line-height: 1.5; text-align: center; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: block; margin-bottom: 7px; color: var(--muted);
+      font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+    input { display: block; width: 100%; min-width: 0; padding: 13px 12px;
+      color: var(--text); background: #07140b;
+      border: 1px solid #245934; border-radius: 12px;
+      font: inherit; font-size: 16px; outline: none; }
+    input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #3cff8130; }
+    .limits { margin: 14px 0 20px; color: var(--muted);
+      font-size: 12px; text-align: center; }
+    .error { min-height: 18px; margin-bottom: 8px; color: #ff8f8f;
+      font-size: 13px; text-align: center; }
+    button { display: block; width: 100%; padding: 15px;
+      color: #031407; background: var(--green); border: 0; border-radius: 13px;
+      font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+    button:active { transform: scale(.985); }
+    /* Center of this overlay matches the center of the final video frame. */
+    #resultScreen { pointer-events: none; }
+    #resultNumber { position: absolute; left: 50%; top: 50%; width: min(63vw, 300px);
+      transform: translate(-50%, calc(-50% - 90px)) scale(.75);
+      color: #eefff2; text-align: center; font-size: clamp(15px, 4.5vw, 26px);
+      font-weight: 850; font-variant-numeric: tabular-nums;
+      letter-spacing: -.035em; line-height: 1.15;
+      text-shadow: 0 0 13px #3cff817a, 0 2px 7px #000;
+      overflow-wrap: anywhere; opacity: 0; }
+    #resultNumber.drop { animation: fall .85s cubic-bezier(.18,.92,.18,1) forwards; }
+    @keyframes fall {
+      0% { opacity: 0; transform: translate(-50%, calc(-50% - 100px)) scale(.7); }
+      65% { opacity: 1; transform: translate(-50%, calc(-50% + 11px)) scale(1.06); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    #continueButton { position: absolute; bottom: max(28px, env(safe-area-inset-bottom));
+      left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 36px));
+      pointer-events: auto; }
+    @media (max-width: 360px) {
+      .fields { grid-template-columns: 1fr; }
+      .panel { padding: 20px 16px; }
     }
   </style>
 </head>
 <body>
-  <video id="bgVideo" playsinline preload="auto" muted>
-    <source src="./assets/video.mp4" type="video/mp4" />
+  <video id="backgroundVideo" muted playsinline preload="auto">
+    <source src="./assets/video.mp4" type="video/mp4">
   </video>
 
-  <div class="app">
-    <div class="layout">
-      <div id="controlCard" class="panel top-card">
-        <h1>Green RNG</h1>
-        <p class="subtitle">Enter a range, run the animation, and get a cryptographically secure random integer right inside the center circle.</p>
-
-        <div class="range-grid">
-          <div class="field">
-            <label for="minInput">Minimum</label>
-            <input id="minInput" type="text" inputmode="numeric" value="-1000000000000000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="maxInput">Maximum</label>
-            <input id="maxInput" type="text" inputmode="numeric" value="1000000000000000" autocomplete="off" />
-          </div>
+  <main id="inputScreen" class="screen">
+    <section class="panel">
+      <h1>Random number simulations (generator)</h1>
+      <p class="description">Enter minimum and maximum values to generate a random integer within your range.</p>
+      <div class="fields">
+        <div>
+          <label for="minInput">MINIMUM</label>
+          <input id="minInput" type="text" inputmode="numeric" value="0" autocomplete="off">
         </div>
-
-        <div class="limits">Allowed range: from -10^15 to 10^15. Integers only.</div>
-        <div id="errorBox" class="error"></div>
-        <button id="generateBtn" class="btn">Generate</button>
+        <div>
+          <label for="maxInput">MAXIMUM</label>
+          <input id="maxInput" type="text" inputmode="numeric" value="0" autocomplete="off">
+        </div>
       </div>
+      <p class="limits">Allowed values: −10<sup>15</sup> to 10<sup>15</sup></p>
+      <div id="errorText" class="error" role="alert"></div>
+      <button id="generateButton" type="button">Generate</button>
+    </section>
+  </main>
 
-      <div id="resultStage" class="result-stage">
-        <div class="circle-wrap">
-          <div class="circle-glow"></div>
-          <div id="statusBadge" class="status">Stand by</div>
-          <div id="resultNumber" class="result-number">0</div>
-        </div>
-
-        <div id="resultMeta" class="result-meta">The video will play during generation. The final number will drop into the center circle when the animation ends.</div>
-
-        <div id="actionBlock" class="bottom-actions hidden">
-          <button id="continueBtn" class="btn">Continue</button>
-          <button id="againBtn" class="btn secondary">Generate again</button>
-        </div>
-
-        <div class="micro">Random source: Web Crypto API (`crypto.getRandomValues`) with rejection sampling for an unbiased uniform distribution.</div>
-      </div>
-    </div>
-  </div>
+  <section id="resultScreen" class="screen hidden" aria-label="Random number result">
+    <div id="resultNumber" aria-live="polite"></div>
+    <button id="continueButton" class="hidden" type="button">Continue</button>
+  </section>
 
   <script>
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
-      tg.setHeaderColor('#020402');
-      tg.setBackgroundColor('#020402');
+      tg.setBackgroundColor('#020602');
+      tg.setHeaderColor('#020602');
     }
 
-    const LIMIT_MIN = -(10n ** 15n);
-    const LIMIT_MAX = 10n ** 15n;
-
+    const LOWEST = -(10n ** 15n);
+    const HIGHEST = 10n ** 15n;
+    const video = document.getElementById('backgroundVideo');
+    const inputScreen = document.getElementById('inputScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const resultNumber = document.getElementById('resultNumber');
     const minInput = document.getElementById('minInput');
     const maxInput = document.getElementById('maxInput');
-    const errorBox = document.getElementById('errorBox');
-    const generateBtn = document.getElementById('generateBtn');
-    const continueBtn = document.getElementById('continueBtn');
-    const againBtn = document.getElementById('againBtn');
-    const controlCard = document.getElementById('controlCard');
-    const resultStage = document.getElementById('resultStage');
-    const bgVideo = document.getElementById('bgVideo');
-    const resultNumber = document.getElementById('resultNumber');
-    const resultMeta = document.getElementById('resultMeta');
-    const statusBadge = document.getElementById('statusBadge');
-    const actionBlock = document.getElementById('actionBlock');
+    const errorText = document.getElementById('errorText');
+    const continueButton = document.getElementById('continueButton');
 
-    let lastPayload = null;
-
-    function normalizeIntegerString(value) {
-      const trimmed = value.trim();
-      if (!/^[-+]?\d+$/.test(trimmed)) {
-        throw new Error('Please enter a valid integer.');
+    function getRange() {
+      const integerPattern = /^[+-]?\d+$/;
+      const minText = minInput.value.trim();
+      const maxText = maxInput.value.trim();
+      if (!integerPattern.test(minText) || !integerPattern.test(maxText)) {
+        throw new Error('Enter valid whole numbers.');
       }
-      return trimmed.replace(/^\+/, '');
-    }
-
-    function parseAndValidateRange() {
-      let min, max;
-      try {
-        min = BigInt(normalizeIntegerString(minInput.value));
-        max = BigInt(normalizeIntegerString(maxInput.value));
-      } catch (error) {
-        throw new Error(error.message || 'Please enter valid integers.');
-      }
-
-      if (min < LIMIT_MIN || max > LIMIT_MAX) {
-        throw new Error('Allowed bounds are from -10^15 to 10^15.');
+      const min = BigInt(minText);
+      const max = BigInt(maxText);
+      if (min < LOWEST || max > HIGHEST) {
+        throw new Error('Values must be between −10¹⁵ and 10¹⁵.');
       }
       if (min > max) {
-        throw new Error('Minimum must be less than or equal to maximum.');
+        throw new Error('Minimum cannot be greater than maximum.');
       }
       return { min, max };
     }
 
-    function bitLength(n) {
-      if (n <= 0n) return 1;
-      return n.toString(2).length;
-    }
-
-    function randomBigIntBelow(limit) {
-      if (limit <= 0n) throw new Error('Limit must be positive.');
-      const bits = bitLength(limit - 1n);
-      const bytes = Math.max(1, Math.ceil(bits / 8));
-      const fullRange = 1n << BigInt(bytes * 8);
-      const acceptable = fullRange - (fullRange % limit);
-      const array = new Uint8Array(bytes);
-
+    // Rejection sampling prevents modulo bias; BigInt keeps every integer exact.
+    function randomBelow(limit) {
+      const bits = (limit - 1n).toString(2).length;
+      const byteCount = Math.ceil(bits / 8);
+      const bytes = new Uint8Array(byteCount);
+      const sourceRange = 1n << BigInt(byteCount * 8);
+      const cutoff = sourceRange - sourceRange % limit;
       while (true) {
-        crypto.getRandomValues(array);
+        crypto.getRandomValues(bytes);
         let value = 0n;
-        for (const byte of array) {
-          value = (value << 8n) + BigInt(byte);
-        }
-        if (value < acceptable) {
-          return value % limit;
-        }
+        for (const byte of bytes) value = (value << 8n) | BigInt(byte);
+        if (value < cutoff) return value % limit;
       }
     }
 
-    function secureRandomInRange(min, max) {
-      const size = max - min + 1n;
-      return min + randomBigIntBelow(size);
+    function secureInteger(min, max) {
+      return min + randomBelow(max - min + 1n);
     }
 
-    function resetVisuals() {
-      errorBox.textContent = '';
+    let timer = null;
+    let revealed = false;
+
+    function showNumber(number) {
+      if (revealed) return;
+      revealed = true;
+      clearTimeout(timer);
+      video.pause(); // Keep the final video frame on screen.
+      resultNumber.textContent = number.toString();
       resultNumber.classList.remove('drop');
-      resultNumber.style.opacity = '0';
-      resultNumber.textContent = '0';
-      statusBadge.textContent = 'Stand by';
-      actionBlock.classList.add('hidden');
-      resultMeta.textContent = 'The video will play during generation. The final number will drop into the center circle when the animation ends.';
+      void resultNumber.offsetWidth;
+      resultNumber.classList.add('drop');
+      continueButton.classList.remove('hidden');
     }
 
-    async function startGeneration() {
-      resetVisuals();
+    async function generate() {
+      errorText.textContent = '';
       let range;
       try {
-        range = parseAndValidateRange();
+        range = getRange();
       } catch (error) {
-        errorBox.textContent = error.message;
+        errorText.textContent = error.message;
         return;
       }
-
-      const generated = secureRandomInRange(range.min, range.max);
-      lastPayload = {
-        result: generated.toString(),
-        min: range.min.toString(),
-        max: range.max.toString(),
-        source: 'Web Crypto CSPRNG'
-      };
-
-      controlCard.classList.add('hidden');
-      resultStage.classList.add('active');
-      statusBadge.textContent = 'Generating';
-      resultMeta.textContent = 'Running visual effect... please wait for the final frame.';
-
-      bgVideo.pause();
-      bgVideo.currentTime = 0;
-      bgVideo.loop = false;
+      if (!window.crypto?.getRandomValues) {
+        errorText.textContent = 'Secure randomness is not available in this browser.';
+        return;
+      }
+      const number = secureInteger(range.min, range.max);
+      revealed = false;
+      resultNumber.textContent = '';
+      resultNumber.classList.remove('drop');
+      continueButton.classList.add('hidden');
+      inputScreen.classList.add('hidden');
+      resultScreen.classList.remove('hidden');
+      video.pause();
+      video.currentTime = 0;
+      video.onended = () => showNumber(number);
+      timer = setTimeout(() => showNumber(number), 6000);
       try {
-        await bgVideo.play();
-      } catch (_) {
-        // If autoplay is blocked, still continue with a timer fallback.
-      }
-
-      let resolved = false;
-      const reveal = () => {
-        if (resolved) return;
-        resolved = true;
-        bgVideo.pause();
-        try {
-          bgVideo.currentTime = Math.max(0, bgVideo.duration - 0.03);
-        } catch (_) {}
-        statusBadge.textContent = 'Result';
-        resultNumber.textContent = generated.toString();
-        // restart animation
-        void resultNumber.offsetWidth;
-        resultNumber.classList.add('drop');
-        resultMeta.textContent = `Generated integer in [${range.min.toString()}, ${range.max.toString()}]. Tap Continue to send the result back to the bot.`;
-        actionBlock.classList.remove('hidden');
-      };
-
-      const fallbackMs = isFinite(bgVideo.duration) && bgVideo.duration > 0 ? Math.ceil(bgVideo.duration * 1000) + 120 : 3500;
-      const fallbackTimer = setTimeout(reveal, fallbackMs);
-
-      bgVideo.onended = () => {
-        clearTimeout(fallbackTimer);
-        reveal();
-      };
-    }
-
-    function sendResultBack() {
-      if (!lastPayload) return;
-      if (tg && typeof tg.sendData === 'function') {
-        tg.sendData(JSON.stringify(lastPayload));
-        if (typeof tg.close === 'function') {
-          setTimeout(() => tg.close(), 120);
-        }
-      } else {
-        alert(`Generated number: ${lastPayload.result}`);
+        await video.play();
+      } catch (error) {
+        showNumber(number);
       }
     }
 
-    function generateAgain() {
-      controlCard.classList.remove('hidden');
-      resultStage.classList.remove('active');
-      actionBlock.classList.add('hidden');
-      resetVisuals();
+    function continueToRange() {
+      clearTimeout(timer);
+      video.onended = null;
+      video.pause();
+      video.currentTime = 0;
+      resultScreen.classList.add('hidden');
+      inputScreen.classList.remove('hidden');
+      resultNumber.classList.remove('drop');
+      continueButton.classList.add('hidden');
     }
 
-    generateBtn.addEventListener('click', startGeneration);
-    continueBtn.addEventListener('click', sendResultBack);
-    againBtn.addEventListener('click', generateAgain);
+    document.getElementById('generateButton').addEventListener('click', generate);
+    continueButton.addEventListener('click', continueToRange);
   </script>
 </body>
 </html>
